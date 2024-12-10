@@ -1,0 +1,52 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - devel
+      - stage
+      - prod
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env: 
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 15.5.1
+      - name: Install dependencies
+        run: npm install
+      - name: Build
+        run: npm run build
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.6.0"
+      - name: Set Environment directory
+        run: |
+          if [[ ${{ github.ref_name }} == "devel" ]]; then
+            echo "environment=terraform/environment/devel" >> $GITHUB_ENV 
+          elif [[ ${{ github.ref_name }} == "stage" ]]; then
+            echo "environment=terraform/environment/stage" >> $GITHUB_ENV 
+          elif [[ ${{ github.ref_name }} == "prod" ]]; then
+            echo "environment=terraform/environment/prod" >> $GITHUB_ENV             
+          else
+            echo "Environment not recognized"
+            exit 1
+          fi
+      - name: Terraform init
+        working-directory: ${{ env.environment}}
+        run: terraform init
+      - name: Terraform Apply
+        working-directory: ${{ env.environment}}
+        run: terraform apply -auto-approve
+      - name: Copy Files to S3
+        run: |
+          BUCKET_NAME="${{ github.ref_name }}-cidr-app-bucket"
+          aws s3 sync ./build s3://$BUCKET_NAME/ --region $AWS_DEFAULT_REGION              
