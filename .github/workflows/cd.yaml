@@ -31,11 +31,11 @@ jobs:
       - name: Set Environment directory
         run: |
           if [[ ${{ github.ref_name }} == "devel" ]]; then
-            echo "environment=terraform/environment/devel" >> $GITHUB_ENV 
+            echo "environment=terraform/environments/devel" >> $GITHUB_ENV 
           elif [[ ${{ github.ref_name }} == "stage" ]]; then
-            echo "environment=terraform/environment/stage" >> $GITHUB_ENV 
+            echo "environment=terraform/environments/stage" >> $GITHUB_ENV 
           elif [[ ${{ github.ref_name }} == "prod" ]]; then
-            echo "environment=terraform/environment/prod" >> $GITHUB_ENV             
+            echo "environment=terraform/environments/prod" >> $GITHUB_ENV             
           else
             echo "Environment not recognized"
             exit 1
